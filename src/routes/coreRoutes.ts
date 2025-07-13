@@ -9,7 +9,9 @@ import { checkEmail } from "../lib/regex";
 
 const prisma = new PrismaClient();
 
-export default async function userRoutes(fastify: FastifyInstance) {
+export default async function userRoutes(
+  fastify: FastifyInstance
+): Promise<void> {
   fastify.post(
     "/signup",
     async (req: FastifyRequest<{ Body: SignupBody }>, reply: FastifyReply) => {
@@ -22,7 +24,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
       if (existingUser)
         return reply
           .status(409)
-          .send({ error: `User already exists with email: ${email}` });
+          .send({ error: `User already exists with same email or name.` });
 
       if (!checkEmail(email))
         return reply.status(400).send({
@@ -83,11 +85,12 @@ export default async function userRoutes(fastify: FastifyInstance) {
     "/admin",
     { preHandler: [authenticate, authorizeRole(["admin"])] },
     async (req, reply) => {
-      return { user: req.user, message: "Your an admin!!!" };
+      const users = await prisma.user.findMany();
+      return { users };
     }
   );
 
   fastify.get("/logout", { preHandler: [authenticate] }, async (req, reply) => {
-    return { message: "Logout Successful" };
+    return { message: "Logout Successful", status: 200 };
   });
 }
